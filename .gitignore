@@ -1,0 +1,14 @@
+
+
+
+# 这个项目是基于vs2019-linux写的.
+# 
+
+.vs/
+~/
+bin/
+obj/
+gdlServer.sln
+gdlServer.vcxproj
+gdlServer.vcxproj.filters
+gdlServer.vcxproj.user
