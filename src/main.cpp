@@ -12,18 +12,25 @@ int main() {
 	
 
 	//test ThreadPool.
-	gdl::threadpool thpool(5);
+	gdl::ThreadPool thpool(5);
 
-	gdl::ServerConn server("www.yqun.xyz", 8848);
+	gdl::ServerConn server("www.yqun.xyz", 8848, [&](std::function<void()>&& task) {
+		thpool.commit(std::forward<std::function<void()>&&>(task)); 
+		});
+
 	server.serverInit();
 
 	sleep(3);
-	std::cout << "server start....." << std::endl;
+	std::cout << server.serverDescriptions() << std::endl;
+
+	server.start(100);
 
 	while(true)
-	thpool.commit([&] {
-		server.loop(100);
-		});
+		sleep(10000);
+	//thpool.join();
+
+
+
 
 	return 0;
 }

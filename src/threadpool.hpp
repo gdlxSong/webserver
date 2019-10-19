@@ -2,7 +2,7 @@
 #define GDL_THREAD_POOL_H
 
 
-#include<list>
+
 #include <vector>
 #include <queue>
 #include <thread>
@@ -11,10 +11,9 @@
 #include <future>
 #include <functional>
 #include <stdexcept>
-#include"util.hpp"
 #include"SyncQueue.hpp"
-
-
+#include"util.hpp"
+#include<chrono>
 
 
 
@@ -38,8 +37,9 @@ namespace gdl
 		std::atomic<bool> stoped;
 		//空闲线程数量
 		std::atomic<int>  idlThrNum;
+		int nThreads;
 	public:
-		inline threadpool(int size = std::thread::hardware_concurrency()) :stoped{ false }
+		inline threadpool(int size = std::thread::hardware_concurrency()) :stoped{ false }, nThreads(size)
 		{
 			idlThrNum = size < 1 ? 1 : size;
 			for (size = 0; size < idlThrNum; ++size)
@@ -110,6 +110,13 @@ namespace gdl
 		}
 		//空闲线程数量
 		int idlCount() { return idlThrNum; }
+		bool idle() {
+			return (!stoped.load() && tasks.empty());
+		}
+		void join() {
+
+			while (nThreads != idlThrNum || !idle())std::this_thread::yield();
+		}
 	};
 
 
@@ -120,52 +127,67 @@ namespace gdl
 
 		using Task = std::function<void()>;
 	public:
-		ThreadPool(int nThread = std::thread::hardware_concurrency()) : exited(false), idleThreads(0){
+		ThreadPool(int nThread = std::thread::hardware_concurrency()) : nThreads(nThread),exited(false), idleThreads(nThread)  {
+
 			start(nThread);
 		}
 		~ThreadPool() {
 			stop();
 		}
 
-		void start(int nThread) {
+		void commit(Task&& task) {
 
-			for (int i = 0; i < nThread; i++) {
-				if(threadgroups.size() < MAX_THREAD_NUM)
-					threadgroups.emplace_back(std::make_shared<std::thread>(&ThreadPool::handleThread, this));
+			tasks.push(std::forward<Task>(task));
+		}
+		void stop() {
+			std::call_once(flag, [=] { stopThreadgroups(); });//=this
+		}
+		bool idle() {
+			return (!exited.load() && tasks.empty());
+		}
+		int idleThread() { return idleThreads; }
+		void join() {
+
+			while (nThreads != idleThreads || !idle()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			}
 		}
 
+
+	private:
+
+		void stopThreadgroups() {
+			exited = true;
+			tasks.stop();
+			//join.
+			for (auto it : threadgroups) {
+				if (it->joinable())
+					it->join();
+			}
+			threadgroups.clear();
+			idleThreads = 0;
+		}
+		void start(int nThread) {
+
+			for (int i = 0; i < nThread; i++) {
+				if (threadgroups.size() < MAX_THREAD_NUM)
+					threadgroups.emplace_back(std::make_shared<std::thread>(&ThreadPool::handleThread, this));
+			}
+		}
 		void handleThread() {
 
 			Task task;
 			while (!exited) {
 				if (tasks.pop(task)) {
 					idleThreads--;
-					task();			
+					task();
 					idleThreads++;
 				}
-
 			}
 		}
 
-		void commit(Task&& task) {
-
-			tasks.push(std::forward<Task>(task));
-		}
-
-
-		void stopThreadgroups() {
-			exited = true;
-			tasks.stop();
-		}
-
-		void stop() {
-			std::call_once(flag, [=] {stopThreadgroups(); });//=this
-		}
-
-		int idleThread() { return idleThreads; }
-
 	private:
+		int nThreads;
 		std::atomic<bool> exited;
 		std::once_flag flag;
 		std::atomic<int> idleThreads;

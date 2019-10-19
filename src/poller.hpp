@@ -1,10 +1,10 @@
 #ifndef POLLER_HPP
 #define POLLER_HPP
 
-#include <poll.h>
-#include <sys/epoll.h>
+
 #include<memory>
 #include<set>
+#include"socktool.hpp"
 #include"socketChannel.hpp"
 #include"log.hpp"
 

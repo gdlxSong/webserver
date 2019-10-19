@@ -4,7 +4,7 @@
 #include<signal.h>
 
 
-gdl::ServerConn::ServerConn(const std::string& host, unsigned short port)
+gdl::ServerConn::ServerConn(const std::string& host, unsigned short port, PusherAble&& psr)
 {
 	//create epoller.
 	epoller = std::make_shared<gdl::EPoller>(new gdl::EPoller());
@@ -13,6 +13,14 @@ gdl::ServerConn::ServerConn(const std::string& host, unsigned short port)
 	//logger init.
 	logger.init("./log.log", 50);
 
+	paserContainer = std::shared_ptr<gdl::Protocols::PasrserContainer>(new gdl::Protocols::PasrserContainer(bufferpool));
+	//协议解析器注册.
+	paserContainer->registerConstructor([](gdl::Protocols::Buffer buf) {
+		return gdl::Protocols::HttpPaser().analysis(buf);
+		});
+
+	//线程任务投递器.
+	pusher = std::move(psr);
 }
 
 gdl::ServerConn::~ServerConn()
@@ -136,34 +144,16 @@ void gdl::ServerConn::handleAccept()
 			auto& channel = connInfo.back().channel;
 			logger.mount(gdl::LogLevel::LINFO, gdl::strTool::format("a channel created, from %s:%s to %s:%s, channelId = %ld.", raddr.getIp().c_str(), raddr.getPort().c_str(), laddr.getIp().c_str(), laddr.getPort().c_str(), channel->Id()));
 			channel->onRead([&] {
-				std::cout << "start recv." << std::endl;
-				char buf[2048] = { 0 };
-				int n = recv(channel->Fd(), buf, 2047, 0);
-				if (n > 0) {
-					std::cout << buf << std::endl;
-					channel->enableWrite();
-				}
-				else if (0 == n) {
-					logger.mount(gdl::LogLevel::LINFO, gdl::strTool::format("read 0 bytes from channel %d.", channel->Id()));
-					channel->close();
-				}
-				else
-					std::cout << "read faild." << std::endl;
-				std::cout << "leave recv." << std::endl;
+				//当Channel变为可读之后，Channel的回调readcb只是做了一件事儿：将Channel数据的接收和数据的处理操作打包发送给线程池. 以期在epoll_wait的时候防止阻塞.
+				pusher([&] {
+					std::cout << "=========paser start." << std::endl;
+					paserContainer->pasrser(channel);
+					std::cout << "=========paser end." << std::endl;
+					});
 				});
-			channel->onWrite([&] {
-
-				std::cout << "handleWrite....." << std::endl;
-				char response[] = "HTTP/1.1 200 OK\r\ncontent-type:text/html; charset=utf-8\r\ncontent-length:11\r\n\r\njust a test.";
-
-				const int len_r = strlen(response);
-				send(channel->Fd(), response, len_r, 0);
-				channel->enableWrite(false);
-				std::cout << "handleWrite.....end." << std::endl;
-				});
+			
 		}
 		else {
-			std::cout << "handleAccepted. elapsed " << timer.elapsed() << " ms." << std::endl;
 			if (errno == EAGAIN || EWOULDBLOCK == errno)
 				return;
 			exitif(true, [&] {
@@ -184,6 +174,21 @@ void gdl::ServerConn::loop(int waitMs)
 		if(!exited)
 			epoller->loop_once(waitMs);
 	}
+
+	pusher([&] {loop(100);
+	std::cout << "Push a task of loop." << std::endl;
+		});
+	
+}
+
+void gdl::ServerConn::start(int waitMs)
+{
+	loop(waitMs);
+}
+
+std::string gdl::ServerConn::serverDescriptions()
+{
+	return std::string("gdlServer. This is a lightweight server frame. Developed by C++ language.\nAthor: gdl.\nVersion: v0.0.1\n");
 }
 
 

@@ -5,7 +5,7 @@
 #include"util.hpp"
 #include<errno.h>
 #include<iostream>
-
+#include"socktool.hpp"
 #include"timer.hpp"
 
 /*
@@ -82,7 +82,7 @@ void gdl::EPoller::loop_once(int waitMs)
 	Timer timer;
 	//epoll_wait.
 	std::cout << "epoll wait... has "<<channelSets.size()<<" connector." << std::endl;
-	int n = epoll_wait(epollfd, activeEvents, SIZE_ACTIVE, -1);
+	int n = gdl::socktool::Wepoll_wait(epollfd, activeEvents, SIZE_ACTIVE, -1);
 
 	exitif(-1 == n, [&] {
 		logger.mount(gdl::LogLevel::LFATAL, gdl::strTool::format("epoll_wait error %d %s.", errno, strerror(errno)));

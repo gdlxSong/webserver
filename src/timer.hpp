@@ -62,6 +62,38 @@ namespace gdl {
 		static std::string getTimestamp(const time_t t);
 	};
 
+
+
+
+
+
+
+	namespace TimerSeq {
+	
+		class TimerSqueue {
+
+			//关于定时队列的设计：
+			//1. 定是队列内存储的是定时执行函数{interval, function<void()>}
+			//2. 队列是有序的，最早被执行的定时函数在队列头，最晚的在队列尾部.
+			//3. 被执行过的定时函数按照下一次执行时间插入队列.
+			//4. 此类有一个定时执行的函数，函数执行队列内超时的函数. handleTimeout
+			//5. 在epoll模型中，我才用将距离最近超时的时间传递给epoll_wait.
+			//6. 为了提高效率，采用模糊超时，就是有一个超时范围，如5ms.
+
+
+		};
+	
+	
+	
+	
+	}
+
+
+
+
+
+
+
 }
 
 

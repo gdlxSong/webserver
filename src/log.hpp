@@ -19,30 +19,8 @@
 
 
 
-
-
-
-
 #ifndef __LOG___HPP
 #define __LOG___HPP
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

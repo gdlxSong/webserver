@@ -12,8 +12,8 @@
 #include<condition_variable>
 #include"util.hpp"
 
-
 namespace gdl {
+
 
 
 	template<class T>
@@ -23,23 +23,27 @@ namespace gdl {
 		SyncQueue() : stoped(false) {}
 
 		void push(const T& task) {
-			std::lock_guard<std::mutex> lock(mut);
+			std::unique_lock<std::mutex> lock(mut);
 			if (stoped)
 				return;
 			tasks.emplace_back(task);
+			lock.unlock();
 			cv.notify_one();
 		}
 		void push(T&& task) {
-			std::lock_guard<std::mutex> lock(mut);
+			std::unique_lock<std::mutex> lock(mut);
 			if (stoped)
 				return;
 			tasks.emplace_back(std::forward<T&&>(task));
+			lock.unlock();
 			cv.notify_one();
 		}
 
 		bool pop(T& task) {
-			std::unique_lock<std::mutex> lock;
-			cv.wait(lock, [=]() { return !empty() || this->stoped; });
+			std::unique_lock<std::mutex> lock(mut);
+			cv.wait(lock, [this]() { 
+				return !this->empty() || this->stoped.load(); 
+				});
 			if (!stoped) {//not stoped.
 				task = std::move(tasks.front());
 				tasks.pop_front();
@@ -65,7 +69,7 @@ namespace gdl {
 		}
 
 	private:
-		bool stoped;
+		std::atomic<bool> stoped;
 		std::mutex mut;
 		std::condition_variable cv;
 		std::list<T> tasks;

@@ -14,13 +14,16 @@
 #include"socktool.hpp"
 #include<atomic>
 #include<mutex>
-
+#include"util.hpp"
+#include"protocols.hpp"
+#include"objectpool.hpp"
+#include"buffer.hpp"
 namespace gdl {
 
 
 
 
-	class Connector : gdl::noncopyable {
+	class Connector : public gdl::noncopyable {
 
 	public:
 		Connector() = default;
@@ -30,22 +33,25 @@ namespace gdl {
 		void handleSigle(int signal, Callable&& cb);
 
 	private:
-		
+
 	};
 
 
 
 	class ServerConn : Connector {
 
+
+
+		using PusherAble = std::function<void(std::function<void()>)>;//线程任务投递器.
 		struct ConnInfo {
 			gdl::IpAddr::IpAddrv4 localAddr;
 			gdl::IpAddr::IpAddrv4 remoteAddr;
 			std::shared_ptr<gdl::SocketChannel> channel;
 		};
 	public:
-		ServerConn(const std::string& host, unsigned short port = 80);
+		ServerConn(const std::string& host, unsigned short port, PusherAble&& psr);
 		virtual ~ServerConn();
-		
+
 		void serverInit();
 
 		std::shared_ptr<gdl::EPoller> getEpoller() { return epoller; }
@@ -53,6 +59,10 @@ namespace gdl {
 		void handleAccept();
 
 		void loop(int waitMs);
+
+		void start(int waitMs);
+
+		std::string serverDescriptions();
 
 	private:
 		std::atomic<bool> exited;
@@ -62,6 +72,11 @@ namespace gdl {
 		std::list<ConnInfo> connInfo;
 		gdl::Glog logger;
 		std::timed_mutex tmut;
+		
+		std::shared_ptr<gdl::Protocols::PasrserContainer> paserContainer;
+		gdl::ObjectPool<gdl::BufferTool::Buffer> bufferpool;
+		//callback.
+		PusherAble pusher;
 	};
 
 
@@ -77,11 +92,6 @@ namespace gdl {
 	}
 
 }
-
-
-
-
-
 
 
 
