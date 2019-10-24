@@ -74,7 +74,6 @@ namespace gdl {
 		std::timed_mutex tmut;
 		
 		std::shared_ptr<gdl::Protocols::PasrserContainer> paserContainer;
-		gdl::ObjectPool<gdl::BufferTool::Buffer> bufferpool;
 		//callback.
 		PusherAble pusher;
 	};

@@ -10,7 +10,7 @@ gdl::BufferTool::Buffer::Buffer(size_t extendSize)
 	buf = std::unique_ptr<char[]>(new char[_extendSize]);
 	//initial buf.
 	memset(buf.get(), 0, _extendSize);
-	_beg = _end;
+	_beg = _end = 0;
 	_cap = _extendSize;
 }
 
@@ -66,9 +66,10 @@ void gdl::BufferTool::Buffer::eat(size_t sz)
 void gdl::BufferTool::Buffer::extend(size_t sz)
 {
 	size_t n = sz == 0 ? 2 * _cap : _cap + sz;
-	std::shared_ptr<char> buffer(new char[n]);
+	auto buffer =  std::unique_ptr<char[]>(new char[n]);
+	bzero(buffer.get(), n);
 	memcpy(buffer.get(), data(), size());// size(buffer) > size(buf).
-
+	buf = std::move(buffer);
 	//set _beg, _end, _cap.
 	_end -= _beg;
 	_beg = 0;
@@ -81,6 +82,13 @@ void gdl::BufferTool::Buffer::loaded(size_t n)
 	n = n > nreserved ? nreserved : n;
 
 	_end += n;
+}
+
+void gdl::BufferTool::Buffer::clear()
+{
+	//logical clear.
+	//bzero(buf.get(), capcity());
+	_end = _beg = 0;
 }
 
 void gdl::BufferTool::Buffer::clean()

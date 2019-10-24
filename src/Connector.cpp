@@ -13,10 +13,12 @@ gdl::ServerConn::ServerConn(const std::string& host, unsigned short port, Pusher
 	//logger init.
 	logger.init("./log.log", 50);
 
-	paserContainer = std::shared_ptr<gdl::Protocols::PasrserContainer>(new gdl::Protocols::PasrserContainer(bufferpool));
+
+
+	paserContainer = std::shared_ptr<gdl::Protocols::PasrserContainer>(new gdl::Protocols::PasrserContainer());
 	//协议解析器注册.
 	paserContainer->registerConstructor([](gdl::Protocols::Buffer buf) {
-		return gdl::Protocols::HttpPaser().analysis(buf);
+		return gdl::Protocols::HttpPaser().analysis(std::move(buf));
 		});
 
 	//线程任务投递器.

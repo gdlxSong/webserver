@@ -12,7 +12,7 @@ int main() {
 	
 
 	//test ThreadPool.
-	gdl::ThreadPool thpool(5);
+	gdl::ThreadPool thpool(1);
 
 	gdl::ServerConn server("www.yqun.xyz", 8848, [&](std::function<void()>&& task) {
 		thpool.commit(std::forward<std::function<void()>&&>(task)); 

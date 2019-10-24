@@ -4,8 +4,9 @@
 #include<chrono>
 #include <sys/time.h>
 #include<string>
-
-
+#include<functional>
+#include<map>
+#include<list>
 
 
 
@@ -79,8 +80,22 @@ namespace gdl {
 			//4. 此类有一个定时执行的函数，函数执行队列内超时的函数. handleTimeout
 			//5. 在epoll模型中，我才用将距离最近超时的时间传递给epoll_wait.
 			//6. 为了提高效率，采用模糊超时，就是有一个超时范围，如5ms.
+		public:
+			//执行执行函数.
+			using Handler = std::function<void()>;
+			using HandlerList = std::list<std::pair<time_t, Handler> >;
+			TimerSqueue() {}
+			~TimerSqueue() {}
+			
+			void set(Handler&& handler, time_t interval);
+			void handleTimeOut();
+			void interval();
 
-
+		private:
+			//pair{time_t interval, Handler handlerfunc};
+			//map default compare = std::less<key>
+			HandlerList handlerList;
+			std::multimap<time_t, HandlerList::iterator> handlerMap;
 		};
 	
 	

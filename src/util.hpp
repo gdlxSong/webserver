@@ -10,6 +10,10 @@
 #include<stdio.h>
 #include<unistd.h>
 #include <stdarg.h>
+#include<vector>
+#include<string.h>
+
+
 namespace gdl {
 
 
@@ -28,8 +32,14 @@ namespace gdl {
 	namespace strTool {
 
 		std::string format(const char* fmt, ...);
-
-
+		bool startWith(const std::string& str, const std::string& partial);
+		bool endWith(const std::string& str, const std::string& partial);
+		std::vector<std::string> split(const std::string& str, std::string demiliters);
+		std::vector<std::string> rsplit(const std::string& str, std::string demiliters, int n);
+		std::vector<std::size_t> getposs(const std::string& str, std::string subStr);
+		int count(const std::string& str, std::string subStr);
+		bool isNums(std::string str);
+		std::string to_lower(std::string str);
 	}
 
 

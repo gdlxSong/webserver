@@ -34,11 +34,12 @@ namespace gdl {
 			char* end();
 			size_t size();
 			size_t capcity();
+			bool empty() { return 0 == size(); }
 			size_t usableSize();
 			void eat(size_t size);
 			void extend(size_t size = 0);//size == 0 : defaul buffer extend _extendSize;
 			void loaded(size_t n);
-
+			void clear();
 			//clean and reuse.
 			void clean() override;
 		private:

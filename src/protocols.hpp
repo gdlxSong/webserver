@@ -9,11 +9,12 @@
 
 #include<vector>
 #include<iostream>
+#include<fstream>
 #include"log.hpp"
 #include"util.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
-
+#include"filetool.hpp"
 #include"buffer.hpp"
 
 
@@ -22,7 +23,8 @@
 namespace gdl {
 
 	namespace Protocols {
-		using Buffer = std::shared_ptr<gdl::BufferTool::Buffer>;
+		//using Buffer = gdl::ObjectPool<gdl::BufferTool::Buffer>::Element_type;
+		using Buffer = gdl::ObjectPool<gdl::BufferTool::Buffer>::Element_type;
 		using Channel = std::shared_ptr<gdl::SocketChannel>;
 
 		class protocol {
@@ -47,7 +49,10 @@ namespace gdl {
 			Buffer response(const std::string& body);
 
 		private:
-			HttpPaser(Buffer buffer) : buf(buffer) {}
+			HttpPaser(Buffer buffer) : buf(std::move(buffer)) {}
+			std::string getContentType(std::string suffix);
+
+
 			Buffer buf;
 
 		};
@@ -64,7 +69,7 @@ namespace gdl {
 			//观察者模式设计.
 			using Constructor = std::function<std::shared_ptr<protocol>(Buffer)>;
 		public:
-			PasrserContainer(gdl::ObjectPool<gdl::BufferTool::Buffer>& bufpool) : bufferpool(bufpool) {
+			PasrserContainer() {
 
 			}
 			virtual~PasrserContainer();
@@ -80,7 +85,7 @@ namespace gdl {
 			void write(Channel channel, Buffer buffer);
 
 		private:
-			gdl::ObjectPool<gdl::BufferTool::Buffer>& bufferpool;
+			gdl::ObjectPool<gdl::BufferTool::Buffer> bufferpool;
 			std::vector<Constructor> constructorVector;
 
 		};
